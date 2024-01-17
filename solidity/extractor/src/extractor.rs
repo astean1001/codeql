@@ -1,11 +1,8 @@
 use clap::Args;
-use lazy_static::lazy_static;
 use rayon::prelude::*;
-use std::borrow::Cow;
 use std::fs;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
-use tree_sitter::{Language, Parser, Range};
 
 use codeql_extractor::{diagnostics, extractor, file_paths, node_types, trap};
 
@@ -96,8 +93,8 @@ pub fn run(options: Options) -> std::io::Result<()> {
             let mut diagnostics_writer = diagnostics.logger();
             let path = PathBuf::from(line).canonicalize()?;
             let src_archive_file = file_paths::path_for(&src_archive_dir, &path, "");
-            let mut source = std::fs::read(&path)?;
-            let mut needs_conversion = false;
+            let source = std::fs::read(&path)?;
+            let needs_conversion = false;
             let code_ranges;
             let mut trap_writer = trap::Writer::new();
 

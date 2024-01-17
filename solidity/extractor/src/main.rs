@@ -1,8 +1,8 @@
 use clap::Parser;
 
-// mod autobuilder;
+mod autobuilder;
 mod extractor;
-// mod generator;
+mod generator;
 
 #[derive(Parser)]
 #[command(author, version, about)]
