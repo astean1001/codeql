@@ -32,6 +32,14 @@ string getNamespace(File file) {
   )
 }
 
+/**
+ * Holds if this method is a constructor for a module.
+ */
+predicate isConstructor(DataFlow::MethodNode method) {
+  method.getMethodName() = "initialize" and
+  exists(DataFlow::ModuleNode m | m.getOwnInstanceMethod(method.getMethodName()) = method)
+}
+
 abstract class Endpoint instanceof DataFlow::Node {
   string getNamespace() { result = getNamespace(super.getLocation().getFile()) }
 
@@ -63,14 +71,27 @@ class MethodEndpoint extends Endpoint instanceof DataFlow::MethodNode {
 
   DataFlow::MethodNode getNode() { result = this }
 
-  override string getName() { result = super.getMethodName() }
+  override string getName() {
+    result = super.getMethodName() and not this.isConstructor()
+    or
+    // Constructors are modeled as Type!#new rather than Type#initialize
+    result = "new" and this.isConstructor()
+  }
 
   /**
    * Gets the unbound type name of this endpoint.
    */
   override string getType() {
     result =
-      any(DataFlow::ModuleNode m | m.getOwnInstanceMethod(this.getName()) = this).getQualifiedName() or
+      any(DataFlow::ModuleNode m | m.getOwnInstanceMethod(this.getName()) = this).getQualifiedName() and
+    not this.isConstructor()
+    or
+    // Constructors are modeled on `Type!`, not on `Type`
+    result =
+      any(DataFlow::ModuleNode m | m.getOwnInstanceMethod(super.getMethodName()) = this)
+            .getQualifiedName() + "!" and
+    this.isConstructor()
+    or
     result =
       any(DataFlow::ModuleNode m | m.getOwnSingletonMethod(this.getName()) = this)
             .getQualifiedName() + "!"
@@ -136,6 +157,11 @@ class MethodEndpoint extends Endpoint instanceof DataFlow::MethodNode {
     or
     not this.isSupported() and result = ""
   }
+
+  /**
+   * Holds if this method is a constructor for a module.
+   */
+  private predicate isConstructor() { isConstructor(this) }
 }
 
 string methodClassification(Call method) {
