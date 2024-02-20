@@ -1266,20 +1266,6 @@ module Solidity {
     final override AstNode getAFieldOrChild() { solidity_type_alias_child(this, _, result) }
   }
 
-  /** A class representing `type_cast_expression` nodes. */
-  class TypeCastExpression extends @solidity_type_cast_expression, AstNode {
-    /** Gets the name of the primary QL class for this element. */
-    final override string getAPrimaryQlClass() { result = "TypeCastExpression" }
-
-    /** Gets the `i`th child of this node. */
-    final AstNode getChild(int i) { solidity_type_cast_expression_child(this, i, result) }
-
-    /** Gets a field or child node of this node. */
-    final override AstNode getAFieldOrChild() {
-      solidity_type_cast_expression_child(this, _, result)
-    }
-  }
-
   /** A class representing `type_name` nodes. */
   class TypeName extends @solidity_type_name, AstNode {
     /** Gets the name of the primary QL class for this element. */

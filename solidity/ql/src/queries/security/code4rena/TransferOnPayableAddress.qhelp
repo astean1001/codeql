@@ -1,0 +1,55 @@
+<!DOCTYPE qhelp PUBLIC
+"-//Semmle//qhelp//EN"
+"qhelp.dtd">
+<qhelp>
+
+	<overview>
+		<p>
+
+			In Solidity, when transferring Ether, <code>.transfer()</code> and <code>.send()</code> are commonly used. 
+            However, they have a limitation: they forward only a stipend of 2300 gas, which isn't enough to execute 
+            any code in the recipient contract beyond a simple event emission. 
+            Thus, if the recipient is a contract, the transfer may fail unexpectedly.
+
+		</p>
+	</overview>
+
+	<recommendation>
+		<p>
+
+			To overcome this, Solidity introduced the <code>.call{value: _amount}("")</code> method, 
+            which forwards all available gas and can invoke more complex functionality.
+            It's also safer in that it does not revert on failure but instead returns a boolean value 
+            to indicate success or failure. 
+            Therefore, it is generally a better choice to use <code>.call</code> when transferring Ether to 
+            a payable address, with the necessary safety checks implemented to handle potential errors.
+		</p>
+	</recommendation>
+
+	<example>
+
+		<p>
+
+			The following example code demonstrates the use of <code>.transfer()</code> 
+            and <code>.send()</code> to send Ether to a payable address:
+
+		</p>
+
+		<sample src="examples/TransferOnPayableAddressBad.sol"/>
+
+        <p>
+
+			Instead, use an <code>.call</code> to prevent potential failure 
+            when transferring Ether to a payable address:
+
+		</p>
+
+		<sample src="examples/TransferOnPayableAddressGood.sol"/>
+
+	</example>
+
+	<references>
+		<li>Steve Marx - <a href="https://consensys.io/diligence/blog/2019/09/stop-using-soliditys-transfer-now/">Stop Using Solidity’s transfer() Now</a></li>
+		<li>SWC-134: <a href="https://swcregistry.io/docs/SWC-134/">Message call with hardcoded gas amount</a></li>
+	</references>
+</qhelp>

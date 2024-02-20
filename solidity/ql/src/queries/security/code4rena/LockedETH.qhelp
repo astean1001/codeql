@@ -1,0 +1,31 @@
+<!DOCTYPE qhelp PUBLIC
+"-//Semmle//qhelp//EN"
+"qhelp.dtd">
+<qhelp>
+
+    <overview>
+		<p>
+
+			In smart contracts, privileged functions controlled by a single account pose a high risk, 
+            as they can lead to system compromise through the theft of a single administrator's key. 
+            This vulnerability underscores the importance of safeguarding such critical functions from unauthorized access.
+
+		</p>
+    </overview>
+    
+    <recommendation>
+		<p>
+        
+			Implementing multi-signature (multi-sig) wallets for controlling privileged functions 
+            offers a robust solution to this security challenge. 
+            By requiring consensus among multiple authorized parties before executing sensitive transactions, 
+            multi-sig mechanisms significantly mitigate the risk of system destruction 
+            due to the compromise of a single administrator's key.
+
+		</p>
+    </recommendation>
+
+	<references>
+		<li>Defensive Programming in Smart Contracts: <a href="https://scsfg.io/developers/defensive-programming/#principle-of-least-privilege">Principle of Least Privilege</a></li>
+	</references>
+</qhelp>

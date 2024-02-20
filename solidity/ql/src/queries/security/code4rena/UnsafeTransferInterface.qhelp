@@ -1,0 +1,49 @@
+<!DOCTYPE qhelp PUBLIC
+"-//Semmle//qhelp//EN"
+"qhelp.dtd">
+<qhelp>
+
+	<overview>
+		<p>
+
+			Some tokens do not implement the ERC20 standard properly but are still accepted by most code that accepts ERC20 tokens. 
+			For example Tether (USDT)'s <code>transfer()</code> and <code>transferFrom()</code> functions on L1 
+			do not return booleans as the specification requires, and instead have no return value. 
+			When these sorts of tokens are cast to IERC20, their function signatures do not match and therefore the calls made, revert. 
+
+		</p>
+	</overview>
+
+	<recommendation>
+		<p>
+
+			To overcome this, Use OpenZeppelin's SafeERC20's <code>safeTransfer()</code>/<code>safeTransferFrom()</code> instead
+
+		</p>
+	</recommendation>
+
+	<example>
+
+		<p>
+
+			The following example code demonstrates the use of unsafe <code>IERC20.transfer()</code> 
+
+		</p>
+
+		<sample src="examples/UnsafeTransferInterfaceBad.sol"/>
+
+        <p>
+
+			Instead, use an <code>SafeERC20.safeTransfer()</code> to prevent potential failure: 
+
+		</p>
+
+		<sample src="examples/UnsafeTransferInterfaceGood.sol"/>
+
+	</example>
+
+	<references>
+		<li>Coinmonks - <a href="https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca">Missing return value bug — At least 130 tokens affected</a></li>
+		<li>Solidity Issue #4116 - <a href="https://github.com/ethereum/solidity/issues/4116">Enforcing ABI length checks for return data from calls can be breaking</a></li>
+	</references>
+</qhelp>
