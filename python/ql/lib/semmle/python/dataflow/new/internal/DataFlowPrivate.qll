@@ -642,23 +642,37 @@ predicate jumpStepNotSharedWithTypeTracker(Node nodeFrom, Node nodeTo) {
 // Field flow
 //--------
 /**
- * Holds if data can flow from `nodeFrom` to `nodeTo` via an assignment to
- * content `c`.
+ * Subset of `storeStep` that should be shared with type-tracking.
+ *
+ * NOTE: This does not include attributeStoreStep right now, since it has its' own
+ * modeling in the type-tracking library (which is slightly different due to
+ * PostUpdateNodes).
+ *
+ * As of 2024-04-02 the type-tracking library only supports precise content, so there is
+ * no reason to include steps for list content right now.
  */
-predicate storeStep(Node nodeFrom, ContentSet c, Node nodeTo) {
-  listStoreStep(nodeFrom, c, nodeTo)
-  or
-  setStoreStep(nodeFrom, c, nodeTo)
-  or
+predicate storeStepCommon(Node nodeFrom, ContentSet c, Node nodeTo) {
   tupleStoreStep(nodeFrom, c, nodeTo)
   or
   dictStoreStep(nodeFrom, c, nodeTo)
   or
   moreDictStoreSteps(nodeFrom, c, nodeTo)
   or
-  comprehensionStoreStep(nodeFrom, c, nodeTo)
-  or
   iterableUnpackingStoreStep(nodeFrom, c, nodeTo)
+}
+
+/**
+ * Holds if data can flow from `nodeFrom` to `nodeTo` via an assignment to
+ * content `c`.
+ */
+predicate storeStep(Node nodeFrom, ContentSet c, Node nodeTo) {
+  storeStepCommon(nodeFrom, c, nodeTo)
+  or
+  listStoreStep(nodeFrom, c, nodeTo)
+  or
+  setStoreStep(nodeFrom, c, nodeTo)
+  or
+  comprehensionStoreStep(nodeFrom, c, nodeTo)
   or
   attributeStoreStep(nodeFrom, c, nodeTo)
   or
@@ -809,6 +823,8 @@ predicate dictStoreStep(CfgNode nodeFrom, DictionaryElementContent c, Node nodeT
  * TODO: Once TaintTracking no longer uses `dictStoreStep`, unify the two predicates.
  */
 private predicate moreDictStoreSteps(CfgNode nodeFrom, DictionaryElementContent c, Node nodeTo) {
+  // NOTE: It's important to add logic to the newtype definition of
+  // DictionaryElementContent if you add new cases here.
   exists(SubscriptNode subscript |
     nodeTo.(PostUpdateNode).getPreUpdateNode().asCfgNode() = subscript.getObject() and
     nodeFrom.asCfgNode() = subscript.(DefinitionNode).getValue() and
@@ -890,12 +906,19 @@ predicate attributeStoreStep(Node nodeFrom, AttributeContent c, Node nodeTo) {
 }
 
 /**
- * Holds if data can flow from `nodeFrom` to `nodeTo` via a read of content `c`.
+ * Subset of `readStep` that should be shared with type-tracking.
  */
-predicate readStep(Node nodeFrom, ContentSet c, Node nodeTo) {
+predicate readStepCommon(Node nodeFrom, ContentSet c, Node nodeTo) {
   subscriptReadStep(nodeFrom, c, nodeTo)
   or
   iterableUnpackingReadStep(nodeFrom, c, nodeTo)
+}
+
+/**
+ * Holds if data can flow from `nodeFrom` to `nodeTo` via a read of content `c`.
+ */
+predicate readStep(Node nodeFrom, ContentSet c, Node nodeTo) {
+  readStepCommon(nodeFrom, c, nodeTo)
   or
   matchReadStep(nodeFrom, c, nodeTo)
   or

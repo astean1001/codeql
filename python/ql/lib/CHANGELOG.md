@@ -1,3 +1,29 @@
+## 0.11.13
+
+No user-facing changes.
+
+## 0.11.12
+
+No user-facing changes.
+
+## 0.11.11
+
+No user-facing changes.
+
+## 0.11.10
+
+### Minor Analysis Improvements
+
+* Fixed missing flow for dictionary updates (`d[<key>] = ...`) when `<key>` is a string constant not used in dictionary literals or as name of keyword-argument.
+* Fixed flow for iterable unpacking (`a,b = my_tuple`) when it occurs on top-level (module) scope.
+
+## 0.11.9
+
+### Minor Analysis Improvements
+
+* The name "certification" is no longer seen as possibly being a certificate, and will therefore no longer be flagged in queries like "clear-text-logging" which look for sensitive data.
+* Added modeling of the `psycopg` PyPI package as a SQL database library.
+
 ## 0.11.8
 
 ### Minor Analysis Improvements

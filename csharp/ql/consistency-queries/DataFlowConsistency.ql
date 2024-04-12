@@ -1,19 +1,24 @@
 import csharp
-import cil
+private import semmle.code.csharp.controlflow.internal.ControlFlowGraphImpl as ControlFlowGraphImpl
 private import semmle.code.csharp.dataflow.internal.DataFlowImplSpecific
 private import semmle.code.csharp.dataflow.internal.TaintTrackingImplSpecific
 private import codeql.dataflow.internal.DataFlowImplConsistency
 
-private module Input implements InputSig<CsharpDataFlow> {
+private module Input implements InputSig<Location, CsharpDataFlow> {
   private import CsharpDataFlow
+
+  private predicate isStaticAssignable(Assignable a) { a.(Modifiable).isStatic() }
+
+  predicate uniqueEnclosingCallableExclude(Node node) {
+    // TODO: Remove once static initializers are folded into the
+    // static constructors
+    isStaticAssignable(ControlFlowGraphImpl::getNodeCfgScope(node.getControlFlowNode()))
+  }
 
   predicate uniqueCallEnclosingCallableExclude(DataFlowCall call) {
     // TODO: Remove once static initializers are folded into the
     // static constructors
-    exists(ControlFlow::Node cfn |
-      cfn.getAstNode() = any(FieldOrProperty f | f.isStatic()).getAChild+() and
-      cfn = call.getControlFlowNode()
-    )
+    isStaticAssignable(ControlFlowGraphImpl::getNodeCfgScope(call.getControlFlowNode()))
   }
 
   predicate uniqueNodeLocationExclude(Node n) {
@@ -23,11 +28,6 @@ private module Input implements InputSig<CsharpDataFlow> {
     missingLocationExclude(n)
     or
     n instanceof FlowInsensitiveFieldNode
-  }
-
-  predicate missingLocationExclude(Node n) {
-    // Some CIL methods are missing locations
-    n.asParameter() instanceof CIL::Parameter
   }
 
   predicate postWithInFlowExclude(Node n) {
@@ -41,11 +41,7 @@ private module Input implements InputSig<CsharpDataFlow> {
     or
     not exists(LocalFlow::getAPostUpdateNodeForArg(n.getControlFlowNode()))
     or
-    n instanceof ImplicitCapturedArgumentNode
-    or
     n instanceof ParamsArgumentNode
-    or
-    n.asExpr() instanceof CIL::Expr
   }
 
   predicate postHasUniquePreExclude(PostUpdateNode n) {
@@ -98,11 +94,9 @@ private module Input implements InputSig<CsharpDataFlow> {
         not split = cfn.getASplit()
       )
       or
-      call instanceof TransitiveCapturedDataFlowCall
-      or
       call.(NonDelegateDataFlowCall).getDispatchCall().isReflection()
     )
   }
 }
 
-import MakeConsistency<CsharpDataFlow, CsharpTaintTracking, Input>
+import MakeConsistency<Location, CsharpDataFlow, CsharpTaintTracking, Input>

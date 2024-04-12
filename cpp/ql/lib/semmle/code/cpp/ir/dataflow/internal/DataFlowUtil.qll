@@ -34,7 +34,7 @@ private import Node0ToString
 cached
 private newtype TIRDataFlowNode =
   TNode0(Node0Impl node) { DataFlowImplCommon::forceCachingInSameStage() } or
-  TVariableNode(Variable var, int indirectionIndex) {
+  TGlobalLikeVariableNode(GlobalLikeVariable var, int indirectionIndex) {
     indirectionIndex =
       [getMinIndirectionsForType(var.getUnspecifiedType()) .. Ssa::getMaxIndirectionsForType(var.getUnspecifiedType())]
   } or
@@ -55,28 +55,11 @@ private newtype TIRDataFlowNode =
   TFinalParameterNode(Parameter p, int indirectionIndex) {
     exists(Ssa::FinalParameterUse use |
       use.getParameter() = p and
-      use.getIndirectionIndex() = indirectionIndex and
-      parameterIsRedefined(p)
+      use.getIndirectionIndex() = indirectionIndex
     )
   } or
   TFinalGlobalValue(Ssa::GlobalUse globalUse) or
   TInitialGlobalValue(Ssa::GlobalDef globalUse)
-
-/**
- * Holds if the value of `*p` (or `**p`, `***p`, etc.) is redefined somewhere in the body
- * of the enclosing function of `p`.
- *
- * Only parameters satisfying this predicate will generate a `FinalParameterNode` transferring
- * flow out of the function.
- */
-private predicate parameterIsRedefined(Parameter p) {
-  exists(Ssa::Def def |
-    def.getSourceVariable().getBaseVariable().(Ssa::BaseIRVariable).getIRVariable().getAst() = p and
-    def.getIndirectionIndex() = 0 and
-    def.getIndirection() > 1 and
-    not def.getValue().asInstruction() instanceof InitializeParameterInstruction
-  )
-}
 
 /**
  * An operand that is defined by a `FieldAddressInstruction`.
@@ -413,7 +396,7 @@ class Node extends TIRDataFlowNode {
    * modeling flow in and out of global variables.
    */
   Variable asVariable() {
-    this = TVariableNode(result, getMinIndirectionsForType(result.getUnspecifiedType()))
+    this = TGlobalLikeVariableNode(result, getMinIndirectionsForType(result.getUnspecifiedType()))
   }
 
   /**
@@ -423,7 +406,7 @@ class Node extends TIRDataFlowNode {
    */
   Variable asIndirectVariable(int indirectionIndex) {
     indirectionIndex > getMinIndirectionsForType(result.getUnspecifiedType()) and
-    this = TVariableNode(result, indirectionIndex)
+    this = TGlobalLikeVariableNode(result, indirectionIndex)
   }
 
   /** Gets an indirection of this node's underlying variable, if any. */
@@ -465,7 +448,7 @@ class Node extends TIRDataFlowNode {
    * For more information, see
    * [Locations](https://codeql.github.com/docs/writing-codeql-queries/providing-locations-in-codeql-queries/).
    */
-  predicate hasLocationInfo(
+  deprecated predicate hasLocationInfo(
     string filepath, int startline, int startcolumn, int endline, int endcolumn
   ) {
     this.getLocation().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
@@ -1348,6 +1331,7 @@ private import GetConvertedResultExpression
 
 /** Holds if `node` is an `OperandNode` that should map `node.asExpr()` to `e`. */
 predicate exprNodeShouldBeOperand(OperandNode node, Expr e, int n) {
+  not exprNodeShouldBeIndirectOperand(_, e, n) and
   exists(Instruction def |
     unique( | | getAUse(def)) = node.getOperand() and
     e = getConvertedResultExpression(def, n)
@@ -1364,6 +1348,22 @@ private predicate indirectExprNodeShouldBeIndirectOperand(
   )
 }
 
+/** Holds if `node` should be an `IndirectOperand` that maps `node.asExpr()` to `e`. */
+private predicate exprNodeShouldBeIndirectOperand(IndirectOperand node, Expr e, int n) {
+  exists(ArgumentOperand operand |
+    // When an argument (qualifier or positional) is a prvalue and the
+    // parameter (qualifier or positional) is a (const) reference, IR
+    // construction introduces a temporary `IRVariable`. The `VariableAddress`
+    // instruction has the argument as its `getConvertedResultExpression`
+    // result. However, the instruction actually represents the _address_ of
+    // the argument. So to fix this mismatch, we have the indirection of the
+    // `VariableAddressInstruction` map to the expression.
+    node.hasOperandAndIndirectionIndex(operand, 1) and
+    e = getConvertedResultExpression(operand.getDef(), n) and
+    operand.getDef().(VariableAddressInstruction).getIRVariable() instanceof IRTempVariable
+  )
+}
+
 private predicate exprNodeShouldBeIndirectOutNode(IndirectArgumentOutNode node, Expr e, int n) {
   exists(CallInstruction call |
     call.getStaticCallTarget() instanceof Constructor and
@@ -1376,6 +1376,7 @@ private predicate exprNodeShouldBeIndirectOutNode(IndirectArgumentOutNode node, 
 predicate exprNodeShouldBeInstruction(Node node, Expr e, int n) {
   not exprNodeShouldBeOperand(_, e, n) and
   not exprNodeShouldBeIndirectOutNode(_, e, n) and
+  not exprNodeShouldBeIndirectOperand(_, e, n) and
   e = getConvertedResultExpression(node.asInstruction(), n)
 }
 
@@ -1408,7 +1409,8 @@ abstract private class ExprNodeBase extends Node {
 private predicate exprNodeShouldBe(Expr e, int n) {
   exprNodeShouldBeInstruction(_, e, n) or
   exprNodeShouldBeOperand(_, e, n) or
-  exprNodeShouldBeIndirectOutNode(_, e, n)
+  exprNodeShouldBeIndirectOutNode(_, e, n) or
+  exprNodeShouldBeIndirectOperand(_, e, n)
 }
 
 private class InstructionExprNode extends ExprNodeBase, InstructionNode {
@@ -1548,6 +1550,12 @@ private class IndirectArgumentOutExprNode extends ExprNodeBase, IndirectArgument
   IndirectArgumentOutExprNode() { exprNodeShouldBeIndirectOutNode(this, _, _) }
 
   final override Expr getConvertedExpr(int n) { exprNodeShouldBeIndirectOutNode(this, result, n) }
+}
+
+private class IndirectOperandExprNode extends ExprNodeBase instanceof IndirectOperand {
+  IndirectOperandExprNode() { exprNodeShouldBeIndirectOperand(this, _, _) }
+
+  final override Expr getConvertedExpr(int n) { exprNodeShouldBeIndirectOperand(this, result, n) }
 }
 
 /**
@@ -1768,15 +1776,18 @@ class DefinitionByReferenceNode extends IndirectArgumentOutNode {
 }
 
 /**
- * A `Node` corresponding to a variable in the program, as opposed to the
- * value of that variable at some particular point. This can be used for
- * modeling flow in and out of global variables.
+ * A `Node` corresponding to a global (or `static` local) variable in the
+ * program, as opposed to the value of that variable at some particular point.
+ * This is used to model flow through global variables (and `static` local
+ * variables).
+ *
+ * There is no `VariableNode` for non-`static` local variables.
  */
-class VariableNode extends Node, TVariableNode {
+class VariableNode extends Node, TGlobalLikeVariableNode {
   Variable v;
   int indirectionIndex;
 
-  VariableNode() { this = TVariableNode(v, indirectionIndex) }
+  VariableNode() { this = TGlobalLikeVariableNode(v, indirectionIndex) }
 
   /** Gets the variable corresponding to this node. */
   Variable getVariable() { result = v }
@@ -2290,8 +2301,8 @@ private import ContentStars
 
 /** A reference through a non-union instance field. */
 class FieldContent extends Content, TFieldContent {
-  Field f;
-  int indirectionIndex;
+  private Field f;
+  private int indirectionIndex;
 
   FieldContent() { this = TFieldContent(f, indirectionIndex) }
 
@@ -2318,9 +2329,9 @@ class FieldContent extends Content, TFieldContent {
 
 /** A reference through an instance field of a union. */
 class UnionContent extends Content, TUnionContent {
-  Union u;
-  int indirectionIndex;
-  int bytes;
+  private Union u;
+  private int indirectionIndex;
+  private int bytes;
 
   UnionContent() { this = TUnionContent(u, bytes, indirectionIndex) }
 

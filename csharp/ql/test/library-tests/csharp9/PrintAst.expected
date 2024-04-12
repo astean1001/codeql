@@ -3,10 +3,8 @@ AnonymousObjectCreation.cs:
 #    7|   5: [Field] l
 #    7|     -1: [TypeMention] List<AnonObj>
 #    7|       1: [TypeMention] AnonObj
-#    7|     1: [AssignExpr] ... = ...
-#    7|       0: [FieldAccess] access to field l
-#    7|       1: [CastExpr] (...) ...
-#    7|         1: [ObjectCreation] object creation of type List<AnonObj>
+#    7|     1: [CastExpr] (...) ...
+#    7|       1: [ObjectCreation] object creation of type List<AnonObj>
 #    9|   6: [Property] Prop1
 #    9|     -1: [TypeMention] int
 #    9|     3: [Getter] get_Prop1
@@ -294,10 +292,8 @@ FunctionPointer.cs:
 #    5|   5: [Class] Program
 #    7|     5: [Field] pointer
 #    7|       -1: [TypeMention] delegate* default<Int32>
-#    7|       1: [AssignExpr] ... = ...
-#    7|         0: [FieldAccess] access to field pointer
-#    7|         1: [AddressOfExpr] &...
-#    7|           0: [MethodAccess] access to method M0
+#    7|       1: [AddressOfExpr] &...
+#    7|         0: [MethodAccess] access to method M0
 #    9|     6: [Method] M0
 #    9|       -1: [TypeMention] int
 #   10|       4: [BlockStmt] {...}
@@ -913,6 +909,9 @@ Record.cs:
 #   29|         -1: [TypeMention] string
 #   29|       2: [Parameter] Subject
 #   29|         -1: [TypeMention] string
+#   30|     3: [ConstructorInitializer] call to constructor Person1
+#   30|       0: [ParameterAccess] access to parameter FirstName
+#   30|       1: [ParameterAccess] access to parameter LastName
 #   29|   17: [Property] Subject
 #   29|     3: [Getter] get_Subject
 #   29|     4: [Setter] set_Subject
@@ -937,6 +936,9 @@ Record.cs:
 #   32|         -1: [TypeMention] string
 #   32|       2: [Parameter] Level
 #   32|         -1: [TypeMention] int
+#   33|     3: [ConstructorInitializer] call to constructor Person1
+#   33|       0: [ParameterAccess] access to parameter FirstName
+#   33|       1: [ParameterAccess] access to parameter LastName
 #   32|   17: [Property] Level
 #   32|     3: [Getter] get_Level
 #   32|     4: [Setter] set_Level
@@ -981,6 +983,8 @@ Record.cs:
 #-----|     2: (Parameters)
 #   41|       0: [Parameter] Name
 #   41|         -1: [TypeMention] string
+#   41|     3: [ConstructorInitializer] call to constructor Pet
+#   41|       0: [ParameterAccess] access to parameter Name
 #   41|   15: [Property] EqualityContract
 #   41|     3: [Getter] get_EqualityContract
 #   43|   16: [Method] WagTail
@@ -1044,6 +1048,8 @@ Record.cs:
 #   56|         -1: [TypeMention] string
 #   56|       1: [Parameter] B
 #   56|         -1: [TypeMention] string
+#   56|     3: [ConstructorInitializer] call to constructor R1
+#   56|       0: [ParameterAccess] access to parameter A
 #   56|   17: [Property] B
 #   56|     3: [Getter] get_B
 #   56|     4: [Setter] set_B
